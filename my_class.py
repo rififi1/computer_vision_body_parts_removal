@@ -437,6 +437,4 @@ class MyClass():
             
         total_iou /= filenumbers.shape[0]
 
-
-
         return total_iou
