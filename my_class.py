@@ -16,7 +16,7 @@ class NoHumanMaskError(Exception):
         super().__init__(message)
 
 class MyClass():
-    def __init__(self, dataset_path, csv_path, min_area=100):
+    def __init__(self, dataset_path, csv_path, with_edge_mask=False, min_area=100):
         """
             Initialize MyClass with dataset and CSV paths.
 
@@ -30,6 +30,7 @@ class MyClass():
         self.dataset_path = dataset_path
         self.csv_path = csv_path
         self.min_area_for_human_contours = min_area
+        self.with_edge_mask = with_edge_mask
         
         # loading csv file
         self.load_csv()
@@ -140,9 +141,14 @@ class MyClass():
             - combined_mask (numpy.ndarray): Combined binary mask.
         """
 
-        combined_mask = cv2.bitwise_or(skin_mask, edge_mask)
+        combined_mask = cv2.bitwise_or(skin_mask, edge_mask) if self.with_edge_mask else skin_mask
         kernel = np.ones((5, 5), np.uint8)
+        
+        # TODO: I have a feeling we should only do opening here (= erosion + dilation)
+
+        # Closing = dilation + erosion
         combined_mask = cv2.morphologyEx(combined_mask, cv2.MORPH_CLOSE, kernel)
+        # here we re-do dilation 
         combined_mask = cv2.dilate(combined_mask, kernel, iterations=1)
         return combined_mask
 
@@ -245,6 +251,9 @@ class MyClass():
         """
         # Detect the background using color thresholding
         double_bg_mask = self.detect_double_background(img)
+
+        self.double_bg_mask = double_bg_mask
+        self.not_double_bg_mask = cv2.bitwise_not(double_bg_mask)
 
         # Combine edge mask and double background mask to exclude the background in the edge detection
         combined_mask = cv2.bitwise_and(edge_mask, cv2.bitwise_not(double_bg_mask))
@@ -399,12 +408,12 @@ class MyClass():
 
         # Visualization
         self.show_images([
-            img, skin_mask, edges, filtered_edges, 
+            img, skin_mask, edges, self.double_bg_mask, self.not_double_bg_mask, filtered_edges, 
             combined_mask, human_mask, refined_mask, ground_truth_mask, 
             img_final
         ], [
-            "Og Image", "Skin Mask", "Edge Mask", "Filtered Edge Mask", 
-            "Combined Mask", "Contours Mask", "Refined Mask", "Ground Truth", 
+            "Og Image", "Skin Mask", "Edge Mask", "double_bg_mask", "Not double_bg_mask", "Filtered Edge Mask", 
+            "Combined Mask", "Human Mask", "Refined Mask", "Ground Truth", 
             "Final Inpainted Image"
         ], cmap='gray')
 
@@ -436,7 +445,5 @@ class MyClass():
         print("without counting non detected human masks, mean IoU is: ", total_iou / (filenumbers.shape[0] - number_non_detected))
             
         total_iou /= filenumbers.shape[0]
-
-
 
         return total_iou
