@@ -6,6 +6,9 @@ import matplotlib.pyplot as plt
 import cv2
 import os
 import json
+import warnings
+
+warnings.filterwarnings("ignore")
 
 
 class HumanBodyPartNotFoundError(Exception):
@@ -130,7 +133,7 @@ class MyClass:
         Returns:
         - skin_mask (numpy.ndarray): Binary mask of detected skin regions.
         """
-        skin_mask = SkinMask(debug).compute(img, method=method)
+        skin_mask = SkinMask(debug=False).compute(img, method=method)
         return skin_mask
 
     def edge_detection(self, img):
