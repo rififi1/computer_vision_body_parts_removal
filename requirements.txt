@@ -2,5 +2,4 @@ pandas
 numpy
 matplotlib
 opencv-python
-os
-json
+tqdm
